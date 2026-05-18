@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>台北慢遊 · 一個人的旅行</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏮</text></svg>">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        paper: '#faf7f2',
+        ink: '#2c2416',
+        warm: '#c47b4b',
+        tea: '#5c8a6e',
+        deep: '#1a3c34',
+        mist: '#e8e0d5',
+        dusk: '#d4a574',
+        coral: '#c46b5e',
+        night: '#1e1b18'
+      }
+    }
+  }
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+* { -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: #faf7f2;
+  overscroll-behavior: none;
+}
+.serif { font-family: 'Noto Serif TC', serif; }
+
+/* Tab bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(30, 27, 24, 0.92); backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex; justify-content: space-around; align-items: center;
+  padding: 6px 0 env(safe-area-inset-bottom, 8px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 14px; color: rgba(255,255,255,0.45); transition: all 0.3s;
+  font-size: 10px; letter-spacing: 0.5px; background: none; border: none; cursor: pointer;
+}
+.tab-btn.active { color: #d4a574; }
+.tab-btn i { font-size: 20px; transition: transform 0.3s; }
+.tab-btn.active i { transform: translateY(-2px); }
+
+/* Page */
+.page { display: none; padding: 16px 18px 120px; animation: fadeIn 0.35s ease; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Hero */
+.hero-gradient {
+  background: linear-gradient(135deg, #1a3c34 0%, #2d5a4f 40%, #3d7a65 100%);
+  border-radius: 20px;
+}
+
+/* Day card */
+.day-card {
+  background: #fff; border-radius: 16px; padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  margin-bottom: 14px; border-left: 4px solid #5c8a6e;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.day-card:active { transform: scale(0.985); }
+
+/* Weather badge */
+.weather-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 500;
+}
+
+/* Journal card */
+.journal-card {
+  background: #fff; border-radius: 14px; padding: 18px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  margin-bottom: 12px; border: 1px solid #f0ebe0;
+}
+
+/* Photo grid */
+.photo-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.photo-cell {
+  aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+  background: #f0ebe0; position: relative;
+}
+.photo-cell img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: #fff; border-radius: 20px; padding: 24px; width: 90%; max-width: 420px;
+  max-height: 80vh; overflow-y: auto;
+}
+
+/* Tip card */
+.tip-card {
+  background: #fff; border-radius: 14px; padding: 16px 18px;
+  margin-bottom: 10px; display: flex; gap: 14px; align-items: flex-start;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.03);
+}
+.tip-icon {
+  width: 40px; height: 40px; border-radius: 12px; display: flex;
+  align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200;
+  background: #1e1b18; color: #fff; padding: 12px 24px; border-radius: 24px;
+  font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Transport tag */
+.tag {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 12px; font-weight: 500; margin: 2px;
+}
+.tag-green { background: #e8f0e8; color: #3d6b4f; }
+.tag-warm { background: #fdf0e6; color: #b8733f; }
+.tag-coral { background: #fce8e5; color: #a8554f; }
+
+textarea:focus, input:focus { outline: none; }
+</style>
+</head>
+<body class="min-h-screen text-ink">
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- ====== PAGE 0: 行程 ====== -->
+<div id="page-itinerary" class="page active">
+
+  <!-- Hero -->
+  <div class="hero-gradient text-white p-6 mb-5 relative overflow-hidden">
+    <div class="absolute top-3 right-4 text-white/15 text-6xl serif">台北</div>
+    <h1 class="text-2xl font-bold mb-1 serif tracking-wider">台北慢遊</h1>
+    <p class="text-white/70 text-sm">5/8 — 5/12 · 一個人的旅行</p>
+    <div class="flex gap-3 mt-4 flex-wrap">
+      <span class="weather-badge bg-white/15 text-white">
+        <i class="fa fa-map-marker"></i> 捷運中山站
+      </span>
+      <span class="weather-badge bg-white/15 text-white">
+        <i class="fa fa-cloud"></i> 23-32°C 偶陣雨
+      </span>
+    </div>
+  </div>
+
+  <!-- 住宿信息 -->
+  <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-mist">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 rounded-xl bg-deep/10 flex items-center justify-center text-deep">
+        <i class="fa fa-home text-lg"></i>
+      </div>
+      <div>
+        <h3 class="font-semibold text-sm">住宿區域</h3>
+        <p class="text-xs text-ink/50">捷運中山站 2/3/4 號出口步行 5-8 分鐘</p>
+      </div>
+    </div>
+    <p class="text-sm text-ink/70 leading-relaxed">
+      優先選擇赤峰街、心中山線形公園、南京西路一帶的酒店。避開林森北路條通區。24 小時前台、可免費取消、女生獨住評價好為首選。
+    </p>
+  </div>
+
+  <!-- Day cards -->
+  <div class="day-card">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h2 class="font-bold text-lg serif">Day 1 · 5/8 週五</h2>
+        <p class="text-sm text-ink/50">落地日 · 把節奏慢下來</p>
+      </div>
+      <span class="tag tag-green">輕鬆</span>
+    </div>
+    <div class="space-y-3 text-sm leading-relaxed text-ink/75">
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-plane"></i> 抵達</span>
+        <span>桃園機場 → 機場捷運 → 台北車站 → 轉捷運至中山站</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-bed"></i> 入住</span>
+        <span>酒店 check-in，放行李，稍作休息</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-dusk font-bold whitespace-nowrap"><i class="fa fa-moon-o"></i> 晚上</span>
+        <span>赤峰街 → 心中山線形公園 → 誠品生活南西。找一家舒服的咖啡館或簡餐店，早點回酒店。</span>
+      </div>
+      <div class="mt-2 pt-2 border-t border-mist text-xs text-ink/40">
+        <i class="fa fa-lightbulb-o text-dusk"></i> 今天不要追景點。順利進城、安頓好自己，就是最好的開始。
+      </div>
+    </div>
+  </div>
+
+  <div class="day-card">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h2 class="font-bold text-lg serif">Day 2 · 5/9 週六</h2>
+        <p class="text-sm text-ink/50">文藝城市日 · 不怕下雨</p>
+      </div>
+      <span class="tag tag-green">文藝</span>
+    </div>
+    <div class="space-y-3 text-sm leading-relaxed text-ink/75">
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-sun-o"></i> 上午</span>
+        <span>東門站 → 永康街。慢吃早午餐，隨意逛巷弄小店。</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-building-o"></i> 下午</span>
+        <span>華山 1914 文創園區 或 松山文創園區（二選一）</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-dusk font-bold whitespace-nowrap"><i class="fa fa-moon-o"></i> 晚上</span>
+        <span>回中山站附近吃飯、散步、喝東西</span>
+      </div>
+      <div class="mt-2 pt-2 border-t border-mist text-xs text-ink/40">
+        <i class="fa fa-lightbulb-o text-dusk"></i> 今天是最穩的一天。節奏鬆、不怕天氣變化、文藝感很夠。
+      </div>
+    </div>
+  </div>
+
+  <div class="day-card">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h2 class="font-bold text-lg serif">Day 3 · 5/10 週日</h2>
+        <p class="text-sm text-ink/50">淡水慢遊 · 海風與夕陽</p>
+      </div>
+      <span class="tag tag-warm">海邊</span>
+    </div>
+    <div class="space-y-3 text-sm leading-relaxed text-ink/75">
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-train"></i> 交通</span>
+        <span>捷運淡水信義線直達淡水站，無需換乘</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-road"></i> 路線</span>
+        <span>淡水老街 → 河岸散步 → 漁人碼頭看傍晚</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-dusk font-bold whitespace-nowrap"><i class="fa fa-clock-o"></i> 出發</span>
+        <span>中午前後再去就好，不用趕早</span>
+      </div>
+      <div class="mt-2 pt-2 border-t border-mist text-xs text-ink/40">
+        <i class="fa fa-lightbulb-o text-dusk"></i> 陰天或微風反而適合淡水。如果風太大或下雨，就縮短海邊停留，多在河岸老街漫步。
+      </div>
+    </div>
+  </div>
+
+  <div class="day-card">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h2 class="font-bold text-lg serif">Day 4 · 5/11 週一</h2>
+        <p class="text-sm text-ink/50">陽明山 / 北投 二選一</p>
+      </div>
+      <span class="tag tag-coral">彈性</span>
+    </div>
+    <div class="space-y-3 text-sm leading-relaxed text-ink/75">
+      <div class="bg-green-50/60 rounded-xl p-3 mb-2">
+        <p class="font-semibold text-tea text-xs mb-1"><i class="fa fa-sun-o"></i> 天氣好 → 陽明山</p>
+        <p class="text-xs text-ink/60">冷水坑 + 擎天崗，或小油坑輕量版。只選 1-2 個點，下午三四點前下山。</p>
+      </div>
+      <div class="bg-orange-50/60 rounded-xl p-3">
+        <p class="font-semibold text-warm text-xs mb-1"><i class="fa fa-cloud"></i> 天氣差 → 北投</p>
+        <p class="text-xs text-ink/60">北投圖書館 → 溫泉博物館 → 地熱谷 → 泡湯或喝茶。</p>
+      </div>
+      <div class="mt-2 pt-2 border-t border-mist text-xs text-ink/40">
+        <i class="fa fa-lightbulb-o text-dusk"></i> 早上起床看天氣再決定。陽明山很美但很吃天氣，不配合時北投會比硬上山幸福很多。
+      </div>
+    </div>
+  </div>
+
+  <div class="day-card">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <h2 class="font-bold text-lg serif">Day 5 · 5/12 週二</h2>
+        <p class="text-sm text-ink/50">大稻埕 · 返程前的留白</p>
+      </div>
+      <span class="tag tag-warm">返程</span>
+    </div>
+    <div class="space-y-3 text-sm leading-relaxed text-ink/75">
+      <div class="flex gap-3">
+        <span class="text-tea font-bold whitespace-nowrap"><i class="fa fa-sun-o"></i> 上午</span>
+        <span>大稻埕 / 迪化街一帶慢慢逛。老街、茶館、選物、伴手禮。很適合一個人走。</span>
+      </div>
+      <div class="flex gap-3">
+        <span class="text-dusk font-bold whitespace-nowrap"><i class="fa fa-plane"></i> 午後</span>
+        <span>回酒店拿行李 → 機場捷運 → 桃園機場</span>
+      </div>
+      <div class="mt-2 pt-2 border-t border-mist text-xs text-ink/40">
+        <i class="fa fa-lightbulb-o text-dusk"></i> 如果航班較早，今天就別排景點。在中山站附近吃個舒服早餐，直接去機場最省心。
+      </div>
+    </div>
+  </div>
+
+  <!-- 備選方案 -->
+  <div class="bg-mist/50 rounded-2xl p-5 mt-3">
+    <h3 class="font-bold text-sm mb-3 serif"><i class="fa fa-exchange text-warm"></i> 雨天備選方案</h3>
+    <div class="space-y-2 text-sm text-ink/65">
+      <p><span class="tag tag-coral text-xs">陽明山下雨</span> → 改去北投（圖書館、溫泉博物館、泡湯）</p>
+      <p><span class="tag tag-coral text-xs">淡水大風</span> → 縮短海邊，重心放老街河岸；或改留在台北市區逛展館</p>
+      <p><span class="tag tag-coral text-xs">整天大雨</span> → 華山 / 松菸 / 誠品 / 中山站咖啡館路線</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE 1: 隨筆 ====== -->
+<div id="page-journal" class="page">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-bold serif tracking-wider">隨筆</h1>
+    <button onclick="openJournalModal()" class="bg-deep text-white px-4 py-2 rounded-full text-sm font-medium hover:opacity-90 transition">
+      <i class="fa fa-pencil"></i> 寫一筆
+    </button>
+  </div>
+
+  <div id="journal-list" class="space-y-3">
+    <div class="text-center py-16 text-ink/25">
+      <i class="fa fa-book text-5xl block mb-3"></i>
+      <p class="text-sm">還沒有隨筆</p>
+      <p class="text-xs mt-1">記下旅行中的感受吧</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE 2: 拍照 ====== -->
+<div id="page-photos" class="page">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-bold serif tracking-wider">拍照</h1>
+    <div class="flex gap-2">
+      <button onclick="document.getElementById('photo-input').click()" class="bg-deep text-white px-4 py-2 rounded-full text-sm font-medium hover:opacity-90 transition">
+        <i class="fa fa-camera"></i> 拍照
+      </button>
+      <input type="file" id="photo-input" accept="image/*" onchange="addPhoto(event)" class="hidden" multiple>
+    </div>
+  </div>
+
+  <div id="photo-grid" class="photo-grid"></div>
+  <div id="photo-empty" class="text-center py-16 text-ink/25">
+    <i class="fa fa-camera-retro text-5xl block mb-3"></i>
+    <p class="text-sm">還沒有照片</p>
+    <p class="text-xs mt-1">記錄旅途中的光影</p>
+  </div>
+</div>
+
+<!-- ====== PAGE 3: 貼士 ====== -->
+<div id="page-tips" class="page">
+  <h1 class="text-xl font-bold mb-4 serif tracking-wider">旅行貼士</h1>
+
+  <!-- 天氣 -->
+  <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm">
+    <h2 class="font-bold text-sm mb-3 serif flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center"><i class="fa fa-cloud text-sky-600"></i></span>
+      天氣與穿搭
+    </h2>
+    <div class="space-y-2 text-sm text-ink/70">
+      <p>· 這幾天台北 23-32°C，偏暖潮濕，午後可能短暫雷陣雨</p>
+      <p>· 陽明山會比市區低 3-6°C，風也更大</p>
+      <p>· <strong class="text-ink">必帶：</strong>折疊傘、薄外套、好走的平底鞋、一件防風外層</p>
+      <p>· 包盡量輕，不要帶太多東西出門</p>
+    </div>
+  </div>
+
+  <!-- 安全 -->
+  <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm">
+    <h2 class="font-bold text-sm mb-3 serif flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center"><i class="fa fa-shield text-purple-600"></i></span>
+      女生獨行安全
+    </h2>
+    <div class="space-y-2 text-sm text-ink/70">
+      <p>· 住捷運站步行 5-8 分鐘內的酒店，晚上走大路</p>
+      <p>· 避開林森北路條通區住宿，夜生活較多</p>
+      <p>· 到店時間別太晚，第一天尤其不要</p>
+      <p>· 手機保持有電，離線地圖提前下好</p>
+      <p>· 台灣治安很好，但仍保持基本警覺</p>
+    </div>
+  </div>
+
+  <!-- 交通 -->
+  <div class="bg-white rounded-2xl p-5 mb-4 shadow-sm">
+    <h2 class="font-bold text-sm mb-3 serif flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center"><i class="fa fa-subway text-teal-600"></i></span>
+      交通指南
+    </h2>
+    <div class="space-y-2 text-sm text-ink/70">
+      <p>· <strong class="text-ink">機場 → 市區：</strong>機場捷運直達台北車站（約 35 分鐘），再轉捷運至中山站</p>
+      <p>· <strong class="text-ink">市區移動：</strong>捷運 + 步行為主，買一張悠遊卡</p>
+      <p>· <strong class="text-ink">淡水：</strong>捷運淡水信義線直達，無需換乘</p>
+      <p>· <strong class="text-ink">陽明山：</strong>捷運至劍潭站，轉公車上山</p>
+      <p>· <strong class="text-ink">北投：</strong>捷運淡水信義線北投站下車</p>
+    </div>
+  </div>
+
+  <!-- 不建議 -->
+  <div class="bg-rose-50/60 rounded-2xl p-5 mb-4">
+    <h2 class="font-bold text-sm mb-3 serif flex items-center gap-2 text-coral">
+      <i class="fa fa-hand-peace-o"></i> 這次不建議
+    </h2>
+    <div class="space-y-2 text-sm text-ink/65">
+      <p>· 不建議一落地就跑九份（太趕）</p>
+      <p>· 不建議連續換酒店</p>
+      <p>· 不建議把陽明山走成徒步暴走</p>
+      <p>· 不建議這次塞台中、花蓮（留給下次）</p>
+      <p>· 不建議晚間很晚還在山裡或海邊</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== BOTTOM TAB BAR ====== -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab(0)" id="tab-0">
+    <i class="fa fa-calendar"></i> 行程
+  </button>
+  <button class="tab-btn" onclick="switchTab(1)" id="tab-1">
+    <i class="fa fa-pencil"></i> 隨筆
+  </button>
+  <button class="tab-btn" onclick="switchTab(2)" id="tab-2">
+    <i class="fa fa-camera"></i> 拍照
+  </button>
+  <button class="tab-btn" onclick="switchTab(3)" id="tab-3">
+    <i class="fa fa-lightbulb-o"></i> 貼士
+  </button>
+</nav>
+
+<!-- ====== JOURNAL MODAL ====== -->
+<div id="journal-modal" class="modal-overlay hidden" onclick="closeJournalModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-bold text-lg serif">寫隨筆</h2>
+      <button onclick="document.getElementById('journal-modal').classList.add('hidden')" class="text-ink/40 hover:text-ink">
+        <i class="fa fa-times text-lg"></i>
+      </button>
+    </div>
+
+    <div class="mb-3">
+      <label class="text-xs text-ink/50 block mb-1">日期</label>
+      <input type="date" id="journal-date" class="w-full border border-mist rounded-xl px-4 py-2 text-sm bg-paper">
+    </div>
+
+    <div class="mb-3">
+      <label class="text-xs text-ink/50 block mb-1">地點</label>
+      <input type="text" id="journal-location" placeholder="你在哪裡？" class="w-full border border-mist rounded-xl px-4 py-2 text-sm bg-paper">
+    </div>
+
+    <div class="mb-3">
+      <label class="text-xs text-ink/50 block mb-1">標題</label>
+      <input type="text" id="journal-title" placeholder="給這篇隨筆一個標題" class="w-full border border-mist rounded-xl px-4 py-2 text-sm bg-paper">
+    </div>
+
+    <div class="mb-3">
+      <label class="text-xs text-ink/50 block mb-1">心情</label>
+      <div class="flex gap-3 text-2xl" id="mood-picker">
+        <span onclick="pickMood('😊', this)" class="cursor-pointer opacity-40 hover:opacity-100 transition">😊</span>
+        <span onclick="pickMood('😌', this)" class="cursor-pointer opacity-40 hover:opacity-100 transition">😌</span>
+        <span onclick="pickMood('🤔', this)" class="cursor-pointer opacity-40 hover:opacity-100 transition">🤔</span>
+        <span onclick="pickMood('🥺', this)" class="cursor-pointer opacity-40 hover:opacity-100 transition">🥺</span>
+        <span onclick="pickMood('✨', this)" class="cursor-pointer opacity-40 hover:opacity-100 transition">✨</span>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="text-xs text-ink/50 block mb-1">内容</label>
+      <textarea id="journal-content" rows="6" placeholder="寫下你的感受⋯⋯" class="w-full border border-mist rounded-xl px-4 py-3 text-sm bg-paper resize-none"></textarea>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="saveJournal()" class="flex-1 bg-deep text-white py-3 rounded-xl font-medium hover:opacity-90 transition">
+        保存
+      </button>
+      <button onclick="document.getElementById('journal-modal').classList.add('hidden')" class="px-6 py-3 border border-mist rounded-xl text-sm text-ink/50">
+        取消
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PHOTO VIEWER MODAL ====== -->
+<div id="photo-viewer" class="modal-overlay hidden" onclick="this.classList.add('hidden')">
+  <div class="w-full h-full flex items-center justify-center p-4" onclick="event.stopPropagation()">
+    <img id="photo-viewer-img" src="" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl" onclick="document.getElementById('photo-viewer').classList.add('hidden')">
+  </div>
+  <button onclick="deleteCurrentPhoto()" class="absolute top-6 right-6 text-white/80 hover:text-red-400 text-2xl transition">
+    <i class="fa fa-trash"></i>
+  </button>
+</div>
+
+<script>
+// ==================== TAB SWITCHING ====================
+let currentTab = 0;
+const pages = ['page-itinerary', 'page-journal', 'page-photos', 'page-tips'];
+
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pages[idx]).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+}
+
+// ==================== TOAST ====================
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ==================== JOURNAL ====================
+let journals = JSON.parse(localStorage.getItem('taipei_journals') || '[]');
+let selectedMood = '';
+let editingId = null;
+
+function pickMood(m, el) {
+  selectedMood = m;
+  document.querySelectorAll('#mood-picker span').forEach(s => s.classList.remove('opacity-100'));
+  document.querySelectorAll('#mood-picker span').forEach(s => s.classList.add('opacity-40'));
+  el.classList.remove('opacity-40'); el.classList.add('opacity-100');
+}
+
+function openJournalModal(id = null) {
+  editingId = id;
+  selectedMood = '';
+  document.querySelectorAll('#mood-picker span').forEach(s => { s.classList.remove('opacity-100'); s.classList.add('opacity-40'); });
+  document.getElementById('journal-date').value = '';
+  document.getElementById('journal-location').value = '';
+  document.getElementById('journal-title').value = '';
+  document.getElementById('journal-content').value = '';
+
+  if (id !== null) {
+    const j = journals.find(x => x.id === id);
+    if (j) {
+      document.getElementById('journal-date').value = j.date || '';
+      document.getElementById('journal-location').value = j.location || '';
+      document.getElementById('journal-title').value = j.title || '';
+      document.getElementById('journal-content').value = j.content || '';
+      selectedMood = j.mood || '';
+      if (j.mood) {
+        document.querySelectorAll('#mood-picker span').forEach(s => {
+          if (s.textContent === j.mood) { s.classList.remove('opacity-40'); s.classList.add('opacity-100'); }
+        });
+      }
+    }
+  }
+  document.getElementById('journal-modal').classList.remove('hidden');
+  document.getElementById('journal-content').focus();
+}
+
+function closeJournalModal(e) {
+  if (e.target === document.getElementById('journal-modal')) {
+    document.getElementById('journal-modal').classList.add('hidden');
+  }
+}
+
+function saveJournal() {
+  const date = document.getElementById('journal-date').value;
+  const location = document.getElementById('journal-location').value.trim();
+  const title = document.getElementById('journal-title').value.trim();
+  const content = document.getElementById('journal-content').value.trim();
+  if (!title && !content) { toast('至少寫點什麼吧 ✍️'); return; }
+
+  const entry = {
+    id: editingId || Date.now(),
+    date, location, title, content, mood: selectedMood,
+    createdAt: editingId ? (journals.find(j => j.id === editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString()
+  };
+
+  if (editingId) {
+    journals = journals.map(j => j.id === editingId ? entry : j);
+  } else {
+    journals.unshift(entry);
+  }
+  saveJournals();
+  document.getElementById('journal-modal').classList.add('hidden');
+  renderJournals();
+  toast('已保存 ✨');
+}
+
+function deleteJournal(id) {
+  if (!confirm('確定刪除這篇隨筆嗎？')) return;
+  journals = journals.filter(j => j.id !== id);
+  saveJournals();
+  renderJournals();
+  toast('已刪除');
+}
+
+function saveJournals() {
+  localStorage.setItem('taipei_journals', JSON.stringify(journals));
+}
+
+function renderJournals() {
+  const container = document.getElementById('journal-list');
+  if (journals.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-16 text-ink/25">
+        <i class="fa fa-book text-5xl block mb-3"></i>
+        <p class="text-sm">還沒有隨筆</p>
+        <p class="text-xs mt-1">記下旅行中的感受吧</p>
+      </div>`;
+    return;
+  }
+  container.innerHTML = journals.map(j => `
+    <div class="journal-card">
+      <div class="flex justify-between items-start mb-2">
+        <div class="flex items-center gap-2">
+          ${j.mood ? `<span class="text-xl">${j.mood}</span>` : ''}
+          <span class="font-semibold text-sm">${esc(j.title || '無標題')}</span>
+        </div>
+        <span class="text-xs text-ink/30">${fmtDate(j.date || j.createdAt)}</span>
+      </div>
+      ${j.location ? `<p class="text-xs text-tea mb-2"><i class="fa fa-map-marker"></i> ${esc(j.location)}</p>` : ''}
+      <p class="text-sm text-ink/70 leading-relaxed line-clamp-3">${esc(j.content)}</p>
+      <div class="flex gap-3 mt-3 pt-2 border-t border-mist">
+        <button onclick="openJournalModal(${j.id})" class="text-xs text-tea hover:text-deep transition"><i class="fa fa-pencil"></i> 編輯</button>
+        <button onclick="deleteJournal(${j.id})" class="text-xs text-ink/30 hover:text-coral transition"><i class="fa fa-trash"></i> 刪除</button>
+      </div>
+    </div>
+  `).join('');
+  // limit line clamp
+  document.querySelectorAll('.line-clamp-3').forEach(el => {
+    el.style.display = '-webkit-box';
+    el.style.webkitLineClamp = '3';
+    el.style.webkitBoxOrient = 'vertical';
+    el.style.overflow = 'hidden';
+  });
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return `${dt.getMonth()+1}/${dt.getDate()}`;
+}
+
+// ==================== PHOTOS ====================
+let photos = JSON.parse(localStorage.getItem('taipei_photos') || '[]');
+
+function addPhoto(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  let processed = 0;
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      // Resize to save localStorage space
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const maxW = 800;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * (maxW / w); w = maxW; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        photos.unshift({
+          id: Date.now() + Math.random(),
+          src: dataUrl,
+          createdAt: new Date().toISOString()
+        });
+        processed++;
+        if (processed === files.length || processed >= 3) {
+          savePhotosAndRender();
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  e.target.value = '';
+  if (files.length === 0) return;
+  // handle async
+  setTimeout(() => { savePhotosAndRender(); }, 1500);
+}
+
+function savePhotosAndRender() {
+  // Limit to 50 photos max due to localStorage
+  if (photos.length > 50) photos = photos.slice(0, 50);
+  try {
+    localStorage.setItem('taipei_photos', JSON.stringify(photos));
+  } catch(e) {
+    toast('儲存空間不足，請刪除一些舊照片');
+    photos = photos.slice(0, 30);
+    localStorage.setItem('taipei_photos', JSON.stringify(photos));
+  }
+  renderPhotos();
+}
+
+function deletePhoto(id) {
+  if (!confirm('確定刪除這張照片嗎？')) return;
+  photos = photos.filter(p => p.id !== id);
+  savePhotosAndRender();
+  document.getElementById('photo-viewer').classList.add('hidden');
+  toast('已刪除');
+}
+
+let currentPhotoId = null;
+function viewPhoto(id) {
+  currentPhotoId = id;
+  const p = photos.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('photo-viewer-img').src = p.src;
+  document.getElementById('photo-viewer').classList.remove('hidden');
+}
+
+function deleteCurrentPhoto() {
+  if (currentPhotoId) deletePhoto(currentPhotoId);
+}
+
+function renderPhotos() {
+  const grid = document.getElementById('photo-grid');
+  const empty = document.getElementById('photo-empty');
+  if (photos.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = photos.map(p => `
+    <div class="photo-cell" onclick="viewPhoto(${p.id})">
+      <img src="${p.src}" alt="旅行照片" loading="lazy">
+      <div class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/40 flex items-center justify-center text-white text-xs" onclick="event.stopPropagation();deletePhoto(${p.id})">
+        <i class="fa fa-times"></i>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==================== EXPORT/IMPORT ====================
+function exportData() {
+  const data = { journals, photos, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `taipei-travel-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('已匯出 📦');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.journals) journals = data.journals;
+        if (data.photos) photos = data.photos;
+        saveJournals();
+        savePhotosAndRender();
+        renderJournals();
+        toast('已匯入 ✅');
+      } catch(e) { toast('檔案格式不正確 ❌'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ==================== INIT ====================
+renderJournals();
+renderPhotos();
+// Add export/import buttons to journal page
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('page-journal');
+  const exportDiv = document.createElement('div');
+  exportDiv.className = 'flex gap-2 mt-4';
+  exportDiv.innerHTML = `
+    <button onclick="exportData()" class="flex-1 py-3 rounded-xl border border-mist text-sm text-ink/50 hover:bg-white transition">
+      <i class="fa fa-download"></i> 匯出備份
+    </button>
+    <button onclick="importData()" class="flex-1 py-3 rounded-xl border border-mist text-sm text-ink/50 hover:bg-white transition">
+      <i class="fa fa-upload"></i> 匯入資料
+    </button>
+  `;
+  container.appendChild(exportDiv);
+});
+</script>
+
+</body>
+</html>
